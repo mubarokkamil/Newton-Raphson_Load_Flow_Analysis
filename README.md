@@ -8,6 +8,8 @@
 ![Subject](https://img.shields.io/badge/Subject-Power_Systems-blue)
 ![Level](https://img.shields.io/badge/Level-Undergraduate-orange)
 
+### 🌐 [Click Here to Read the Live Interactive Guide]https://mubarokkamil.github.io/Newton-Raphson_Load_Flow_Analysis/
+
 This repository provides a comprehensive, step-by-step mathematical guide to solving **Newton-Raphson Load Flow** problems. Designed for electrical engineering students, it bridges the gap between theoretical textbook formulas and practical, manual computation.
 
 ### 📄 Access the Documentation
