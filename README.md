@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.png" width="100%">
+  <img src="banner2.jpg" width="100%">
 </p>
 
 # Power Systems Analysis: Newton-Raphson Load Flow
