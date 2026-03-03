@@ -1,0 +1,499 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox} % 'most' is required for the breakable option
+\geometry{a4paper, margin=1in}
+
+% --- Custom Colors ---
+\definecolor{mainblue}{RGB}{0, 102, 204}
+\definecolor{trapred}{RGB}{204, 0, 0}
+\definecolor{conceptgreen}{RGB}{0, 153, 76}
+
+% --- Custom Box Environments ---
+% ADDED 'breakable' SO BOXES CAN SPAN MULTIPLE PAGES!
+\newtcolorbox{stepbox}[1][]{
+    colback=mainblue!5!white,
+    colframe=mainblue,
+    fonttitle=\bfseries,
+    title=#1,
+    arc=2mm,
+    boxrule=1pt,
+    breakable 
+}
+
+\newtcolorbox{conceptbox}[1][]{
+    colback=conceptgreen!5!white,
+    colframe=conceptgreen,
+    fonttitle=\bfseries,
+    title=#1,
+    arc=2mm,
+    boxrule=1pt,
+    breakable
+}
+
+\newtcolorbox{examtrap}[1][]{
+    colback=trapred!5!white,
+    colframe=trapred,
+    fonttitle=\bfseries,
+    title=#1,
+    arc=2mm,
+    boxrule=1pt,
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Power Systems: The Ultimate Newton-Raphson Load Flow Guide}}
+\author{Mubarok Hossen Kamil}
+\date{}
+\maketitle
+
+% ==========================================
+% THEORY SECTION
+% ==========================================
+\section*{\textcolor{mainblue}{Theory: The Newton-Raphson Method}}
+
+While the Gauss-Seidel method is simple, it requires dozens (sometimes hundreds) of iterations to solve large power grids. The \textbf{Newton-Raphson (N-R) method} uses Calculus (Taylor Series expansions) to calculate exact slopes (derivatives), allowing it to solve systems of any size in usually 3 to 5 iterations.
+
+\subsection*{1. The General Power Flow Equations}
+In N-R, we express the bus voltages and line admittances in \textbf{polar form}: $V_i = |V_i|\angle\delta_i$ and $Y_{ij} = |Y_{ij}|\angle\theta_{ij}$. The active ($P$) and reactive ($Q$) power injected at any bus $i$ is calculated as:
+\begin{align}
+    P_i &= \sum_{n=1}^{N} |V_i V_n Y_{in}| \cos(\theta_{in} + \delta_n - \delta_i) \label{eq:P_theory} \\
+    Q_i &= -\sum_{n=1}^{N} |V_i V_n Y_{in}| \sin(\theta_{in} + \delta_n - \delta_i) \label{eq:Q_theory}
+\end{align}
+
+\subsection*{2. Power Mismatches}
+At each iteration, we compare our \textit{calculated} power (using our guessed voltages) with the \textit{scheduled} (actual physical) power to find the mismatch ($\Delta$):
+\begin{align*}
+    \Delta P_i &= P_i^{sch} - P_i^{calc} \\
+    \Delta Q_i &= Q_i^{sch} - Q_i^{calc}
+\end{align*}
+
+\subsection*{3. The Jacobian Matrix ($J$)}
+The N-R method relates these power mismatches to voltage corrections ($\Delta \delta$ and $\Delta |V|$) using a matrix of partial derivatives called the \textbf{Jacobian}. The general equation is:
+\begin{equation*}
+    \begin{bmatrix} \Delta P \\ \Delta Q \end{bmatrix} = 
+    \begin{bmatrix} J_{11} & J_{12} \\ J_{21} & J_{22} \end{bmatrix} 
+    \begin{bmatrix} \Delta \delta \\ \Delta |V| \end{bmatrix}
+\end{equation*}
+
+\begin{conceptbox}[Determining the Size of the Jacobian]
+The size of the matrix depends on your system. You do \textbf{not} write mismatch equations for Slack buses (both $P$ and $Q$ are unknown). You do \textbf{not} write $\Delta Q$ equations for PV buses ($Q$ is unknown).
+\begin{itemize}
+    \item Number of unknown angles ($\Delta \delta$) = $N - 1$
+    \item Number of unknown magnitudes ($\Delta |V|$) = $N - 1 - N_g$ (where $N_g$ is number of generators/PV buses)
+\end{itemize}
+\end{conceptbox}
+
+\newpage
+% ==========================================
+% MODULE 8: The Full 3-Bus N-R Solution
+% ==========================================
+\section*{\textcolor{mainblue}{Complete 3-Bus Newton-Raphson Example}}
+
+\textbf{Problem Statement:} 
+Figure 6.12 shows a 3-bus power system. Bus 1 is the slack bus with $V_1 = 1.05 \angle 0^\circ$ pu. Bus 2 is a load bus taking 400 MW and 250 Mvar. Bus 3 is a generator (PV) bus holding $|V_3| = 1.04$ pu and generating 200 MW. Line impedances are marked on a 100 MVA base. \\
+\textbf{Goal:} Perform two iterations of the Newton-Raphson power flow.
+
+\subsection*{8.1 Circuit Diagram}
+\begin{center}
+\begin{tikzpicture}[>=latex, scale=0.9, transform shape]
+    % Bus 1
+    \draw[thick, mainblue] (0,4.5) -- (0,1.5);
+    \node[above] at (0,4.5) {\textbf{1}};
+    \node[left, align=center] at (-1.5,2.5) {Slack Bus\\$V_1 = 1.05\angle 0^\circ$};
+    \draw (0,3.5) -- (-1,3.5);
+    \draw[thick] (-1.4,3.5) circle (0.4) node {$\sim$};
+
+    % Bus 2
+    \draw[thick, trapred] (10,4.5) -- (10,1.5);
+    \node[above] at (10,4.5) {\textbf{2}};
+    \draw[->, thick] (10,3.5) -- (11.5,3.5) node[right, align=center] {400\\MW};
+    \draw[->, thick] (10,2.5) -- (11.5,2.5) node[right, align=center] {250\\Mvar};
+    \draw (10.4, 2.3) -- (10.4, 2.7);
+
+    % Bus 3
+    \draw[thick, conceptgreen] (3.5,0) -- (6.5,0);
+    \node[left] at (3.5,0) {\textbf{3}};
+    \draw[->, thick] (4.5,0) -- (4.5,-1.5) node[below, align=center] {200\\MW};
+    \draw (5.5,0) -- (5.5,-0.6);
+    \draw[thick] (5.5,-1) circle (0.4) node {$\sim$};
+    \node[right] at (6,-1) {$|V_3| = 1.04$};
+
+    % Lines
+    \draw (0,4) -- (10,4) node[midway, above] {$0.02 + j0.04$};
+    \draw (0,2) -- (3,2) -- (3,0);
+    \node[above right] at (1.5, 2) {$0.01 + j0.03$};
+    \draw (10,2) -- (7,2) -- (7,0);
+    \node[above left] at (8.5, 2) {$0.0125 + j0.025$};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{8.2 Initial Setup \& Admittance Matrix}
+Convert scheduled powers to per-unit ($S_{base} = 100$ MVA):
+\begin{align*}
+    P_2^{sch} &= \frac{-400}{100} = -4.0 \text{ pu} \quad & Q_2^{sch} &= \frac{-250}{100} = -2.5 \text{ pu} \\
+    P_3^{sch} &= \frac{200}{100} = 2.0 \text{ pu}
+\end{align*}
+
+Calculate line admittances ($y = 1/Z$):
+\begin{align*}
+    y_{12} &= \frac{1}{0.02 + j0.04} = 10 - j20 \text{ pu} \\
+    y_{13} &= \frac{1}{0.01 + j0.03} = 10 - j30 \text{ pu} \\
+    y_{23} &= \frac{1}{0.0125 + j0.025} = 16 - j32 \text{ pu}
+\end{align*}
+
+Build the $Y_{bus}$ (extracting $G$ and $B$ components for N-R formulas):
+\begin{align*}
+    Y_{11} &= y_{12} + y_{13} = 20 - j50 \\
+    Y_{22} &= y_{12} + y_{23} = 26 - j52 \quad &\implies G_{22} = 26, \ B_{22} = -52 \\
+    Y_{33} &= y_{13} + y_{23} = 26 - j62 \quad &\implies G_{33} = 26, \ B_{33} = -62 \\
+    Y_{12} &= Y_{21} = -y_{12} = -10 + j20 \quad &\implies G_{21} = -10, \ B_{21} = 20 \\
+    Y_{13} &= Y_{31} = -y_{13} = -10 + j30 \quad &\implies G_{31} = -10, \ B_{31} = 30 \\
+    Y_{23} &= Y_{32} = -y_{23} = -16 + j32 \quad &\implies G_{23} = -16, \ B_{23} = 32
+\end{align*}
+
+\newpage
+\section*{8.3 Iteration 1 Execution}
+
+\begin{stepbox}[Step 1: Flat Start Guesses]
+Since Bus 1 and 3 have fixed magnitudes, and we assume $0^\circ$ for all unknown angles:
+\begin{itemize}
+    \item $V_1 = 1.05 \angle 0^\circ$ (Fixed)
+    \item $V_2^{(0)} = 1.0 \angle 0^\circ$ (PQ Bus guess)
+    \item $V_3^{(0)} = 1.04 \angle 0^\circ$ (PV Bus, magnitude is scheduled)
+\end{itemize}
+\textit{Since all angles are $0$, all angle differences ($\delta_{ij}$) are $0$. This means $\cos(\delta_{ij}) = 1$ and $\sin(\delta_{ij}) = 0$. This makes the first iteration math incredibly easy!}
+\end{stepbox}
+
+\begin{stepbox}[Step 2: Calculate Power Mismatches]
+For the first iteration (flat start), all voltage angles are zero ($\delta_1 = \delta_2 = \delta_3 = 0^\circ$). Because $|Y_{in}|\cos(\theta_{in})$ is the conductance ($G_{in}$) and $|Y_{in}|\sin(\theta_{in})$ is the susceptance ($B_{in}$), we can extract these values directly from our rectangular $Y_{bus}$ matrix to calculate the initial powers:
+
+\begin{align*}
+    P_2^{(0)} &= |V_2|^2 G_{22} + |V_2||V_1|G_{21} + |V_2||V_3|G_{23} \\
+    &= (1)^2(26) + (1)(1.05)(-10) + (1)(1.04)(-16) \\
+    &= 26 - 10.5 - 16.64 = \mathbf{-1.14 \text{ pu}} \\[0.3cm]
+    %
+    Q_2^{(0)} &= -|V_2|^2 B_{22} - |V_2||V_1|B_{21} - |V_2||V_3|B_{23} \\
+    &= -(1)^2(-52) - (1)(1.05)(20) - (1)(1.04)(32) \\
+    &= 52 - 21.0 - 33.28 = \mathbf{-2.28 \text{ pu}} \\[0.3cm]
+    %
+    P_3^{(0)} &= |V_3|^2 G_{33} + |V_3||V_1|G_{31} + |V_3||V_2|G_{32} \\
+    &= (1.04)^2(26) + (1.04)(1.05)(-10) + (1.04)(1)(-16) \\
+    &= 28.1216 - 10.92 - 16.64 = \mathbf{0.5616 \text{ pu}}
+\end{align*}
+
+Now, calculate the power Mismatches ($\Delta S = S^{sch} - S^{calc}$):
+\begin{align*}
+    \Delta P_2 &= P_2^{sch} - P_2^{(0)} = -4.0 - (-1.14) = \mathbf{-2.86 \text{ pu}} \\
+    \Delta P_3 &= P_3^{sch} - P_3^{(0)} = 2.0 - (0.5616) = \mathbf{1.4384 \text{ pu}} \\
+    \Delta Q_2 &= Q_2^{sch} - Q_2^{(0)} = -2.5 - (-2.28) = \mathbf{-0.22 \text{ pu}}
+\end{align*}
+\end{stepbox}
+
+\begin{conceptbox}[Why is there no $\Delta Q_3$?]
+Bus 3 is a generator (PV) bus! We do not know its scheduled reactive power limit yet, so we cannot calculate a mismatch. We omit its row from the matrix entirely.
+\end{conceptbox}
+
+\begin{stepbox}[Step 3: Build the $3 \times 3$ Jacobian Matrix (Step-by-Step Calculus)]
+
+\textbf{1. The Jacobian Matrix Equation}\\
+To solve the system, we need to populate the $3 \times 3$ Jacobian matrix ($J$) that relates our Mismatches to our Corrections:
+\begin{equation*}
+    \begin{bmatrix} \Delta P_2 \\ \Delta P_3 \\ \Delta Q_2 \end{bmatrix} = 
+    \begin{bmatrix} 
+    \frac{\partial P_2}{\partial \delta_2} & \frac{\partial P_2}{\partial \delta_3} & \frac{\partial P_2}{\partial |V_2|} \\[0.3cm]
+    \frac{\partial P_3}{\partial \delta_2} & \frac{\partial P_3}{\partial \delta_3} & \frac{\partial P_3}{\partial |V_2|} \\[0.3cm]
+    \frac{\partial Q_2}{\partial \delta_2} & \frac{\partial Q_2}{\partial \delta_3} & \frac{\partial Q_2}{\partial |V_2|} 
+    \end{bmatrix}
+    \begin{bmatrix} \Delta \delta_2 \\ \Delta \delta_3 \\ \Delta |V_2| \end{bmatrix}
+\end{equation*}
+
+\vspace{0.3cm}
+\textbf{2. Calculate Partial Derivatives (Row 1: Derivatives of $P_2$)}\\
+\textit{Note on Chain Rule: The derivative of $\cos(x)$ is $-\sin(x)$. However, when differentiating with respect to $\delta_2$, the inside term $(-\delta_2)$ gives a $-1$, making the overall term positive!}
+
+\noindent \textbf{Element $J_{11} \ (\partial P_2 / \partial \delta_2)$:}
+\begin{align*}
+    \frac{\partial P_2}{\partial \delta_2} &= |V_2||V_1||Y_{21}|\sin(\theta_{21} - \delta_2 + \delta_1) + |V_2||V_3||Y_{23}|\sin(\theta_{23} - \delta_2 + \delta_3) \\
+    &= |V_2||V_1|\underbrace{|Y_{21}|\sin\theta_{21}}_{B_{21}} + |V_2||V_3|\underbrace{|Y_{23}|\sin\theta_{23}}_{B_{23}} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= (1.0)(1.05)(20) + (1.0)(1.04)(32) = \mathbf{54.28}
+\end{align*}
+
+\noindent \textbf{Element $J_{12} \ (\partial P_2 / \partial \delta_3)$:}
+\begin{align*}
+    \frac{\partial P_2}{\partial \delta_3} &= -|V_2||V_3||Y_{23}|\sin(\theta_{23} - \delta_2 + \delta_3) \\
+    &= -|V_2||V_3|B_{23} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= -(1.0)(1.04)(32) = \mathbf{-33.28}
+\end{align*}
+
+\noindent \textbf{Element $J_{13} \ (\partial P_2 / \partial |V_2|)$:}
+\begin{align*}
+    \frac{\partial P_2}{\partial |V_2|} &= |V_1||Y_{21}|\cos(\theta_{21} - \delta_2 + \delta_1) + 2|V_2||Y_{22}|\cos\theta_{22} + |V_3||Y_{23}|\cos(\theta_{23} - \delta_2 + \delta_3) \\
+    &= |V_1|\underbrace{|Y_{21}|\cos\theta_{21}}_{G_{21}} + 2|V_2|\underbrace{|Y_{22}|\cos\theta_{22}}_{G_{22}} + |V_3|\underbrace{|Y_{23}|\cos\theta_{23}}_{G_{23}} \quad \text{\textcolor{mainblue}{(Flat Start)}} \\
+    &= (1.05)(-10) + 2(1.0)(26) + (1.04)(-16) = \mathbf{24.86}
+\end{align*}
+
+\vspace{0.3cm}
+\textbf{3. Calculate Partial Derivatives (Row 2: Derivatives of $P_3$)}
+
+\noindent \textbf{Element $J_{21} \ (\partial P_3 / \partial \delta_2)$:}
+\begin{align*}
+    \frac{\partial P_3}{\partial \delta_2} &= -|V_3||V_2||Y_{32}|\sin(\theta_{32} - \delta_3 + \delta_2) \\
+    &= -|V_3||V_2|B_{32} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= -(1.04)(1.0)(32) = \mathbf{-33.28}
+\end{align*}
+
+\noindent \textbf{Element $J_{22} \ (\partial P_3 / \partial \delta_3)$:}
+\begin{align*}
+    \frac{\partial P_3}{\partial \delta_3} &= |V_3||V_1||Y_{31}|\sin(\theta_{31} - \delta_3 + \delta_1) + |V_3||V_2||Y_{32}|\sin(\theta_{32} - \delta_3 + \delta_2) \\
+    &= |V_3||V_1|B_{31} + |V_3||V_2|B_{32} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= (1.04)(1.05)(30) + (1.04)(1.0)(32) = \mathbf{66.04}
+\end{align*}
+
+\noindent \textbf{Element $J_{23} \ (\partial P_3 / \partial |V_2|)$:}
+\begin{align*}
+    \frac{\partial P_3}{\partial |V_2|} &= |V_3||Y_{32}|\cos(\theta_{32} - \delta_3 + \delta_2) \\
+    &= |V_3|G_{32} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= (1.04)(-16) = \mathbf{-16.64}
+\end{align*}
+
+\vspace{0.3cm}
+\textbf{4. Calculate Partial Derivatives (Row 3: Derivatives of $Q_2$)}\\
+\textit{Note: The derivative of $-\sin(x)$ is $-\cos(x)$. With the chain rule on $(-\delta_2)$, the term becomes positive $\cos(x)$.}
+
+\noindent \textbf{Element $J_{31} \ (\partial Q_2 / \partial \delta_2)$:}
+\begin{align*}
+    \frac{\partial Q_2}{\partial \delta_2} &= |V_2||V_1||Y_{21}|\cos(\theta_{21} - \delta_2 + \delta_1) + |V_2||V_3||Y_{23}|\cos(\theta_{23} - \delta_2 + \delta_3) \\
+    &= |V_2||V_1|G_{21} + |V_2||V_3|G_{23} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= (1.0)(1.05)(-10) + (1.0)(1.04)(-16) = \mathbf{-27.14}
+\end{align*}
+
+\noindent \textbf{Element $J_{32} \ (\partial Q_2 / \partial \delta_3)$:}
+\begin{align*}
+    \frac{\partial Q_2}{\partial \delta_3} &= -|V_2||V_3||Y_{23}|\cos(\theta_{23} - \delta_2 + \delta_3) \\
+    &= -|V_2||V_3|G_{23} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= -(1.0)(1.04)(-16) = \mathbf{16.64}
+\end{align*}
+
+\noindent \textbf{Element $J_{33} \ (\partial Q_2 / \partial |V_2|)$:}
+\begin{align*}
+    \frac{\partial Q_2}{\partial |V_2|} &= -|V_1||Y_{21}|\sin(\theta_{21} - \delta_2 + \delta_1) - 2|V_2||Y_{22}|\sin\theta_{22} - |V_3||Y_{23}|\sin(\theta_{23} - \delta_2 + \delta_3) \\
+    &= -|V_1|B_{21} - 2|V_2|B_{22} - |V_3|B_{23} \quad \text{\textcolor{mainblue}{(Apply Flat Start: $\delta=0$)}} \\
+    &= -(1.05)(20) - 2(1.0)(-52) - (1.04)(32) = \mathbf{49.72}
+\end{align*}
+\end{stepbox}
+
+\begin{stepbox}[Step 4: Matrix Inversion \& Voltage Update]
+Our system is:
+\begin{equation*}
+\begin{bmatrix} -2.86 \\ 1.4384 \\ -0.22 \end{bmatrix} 
+= 
+\begin{bmatrix} 
+54.28 & -33.28 & 24.86 \\ 
+-33.28 & 66.04 & -16.64 \\ 
+-27.14 & 16.64 & 49.72 
+\end{bmatrix} 
+\begin{bmatrix} \Delta \delta_2 \\ \Delta \delta_3 \\ \Delta |V_2| \end{bmatrix}
+\end{equation*}
+
+Solving this linear system (via matrix inversion on a calculator) yields:
+\begin{align*}
+    \Delta \delta_2 &= \mathbf{-0.04526 \text{ rad}} \\
+    \Delta \delta_3 &= \mathbf{-0.00772 \text{ rad}} \\
+    \Delta |V_2| &= \mathbf{-0.02655 \text{ pu}}
+\end{align*}
+
+\textbf{Final Updated Voltages for Iteration 1:}
+\begin{align*}
+    |V_2|^{(1)} &= 1.0 + (-0.02655) = \mathbf{0.97345 \text{ pu}} \\
+    \delta_2^{(1)} &= \left(-0.04526 \times \frac{180}{\pi}\right) = \mathbf{-2.593^\circ} \\
+    \delta_3^{(1)} &= \left(-0.00772 \times \frac{180}{\pi}\right) = \mathbf{-0.442^\circ}
+\end{align*}
+
+\textbf{Final Answer:} \\
+Bus 2 Voltage: $V_2^{(1)} = 0.97345 \angle -2.593^\circ \text{ pu}$ \\
+Bus 3 Voltage: $V_3^{(1)} = 1.04 \angle -0.442^\circ \text{ pu}$
+\end{stepbox}
+
+\begin{examtrap}[The Calculator Trap]
+The partial derivative equations inherently use \textbf{RADIANS}. When evaluating $\sin(\delta)$ and $\cos(\delta)$ in future iterations, your calculator MUST be in Radian mode. Wait to convert to Degrees only when writing down your final, physical answer!
+\end{examtrap}
+
+\newpage
+% ==========================================
+% ITERATION 2
+% ==========================================
+\section*{8.4 Iteration 2 Execution}
+
+\begin{stepbox}[Step 1: The New Starting Values]
+We begin Iteration 2 using the updated voltages we just found at the end of Iteration 1. 
+\textbf{Crucial Note:} All angles MUST be in radians for the calculus to work!
+\begin{align*}
+    V_1 &= 1.05 \angle 0 \text{ rad (Fixed)} \\
+    |V_2|^{(1)} &= 0.97345 \text{ pu}, \quad \delta_2^{(1)} = -0.045263 \text{ rad} \\
+    |V_3|^{(1)} &= 1.04 \text{ pu}, \quad \delta_3^{(1)} = -0.007718 \text{ rad}
+\end{align*}
+\end{stepbox}
+
+\begin{stepbox}[Step 2: Calculate New Mismatches]
+Because the angles ($\delta$) are no longer zero, we cannot use the simple $G$ and $B$ shortcut anymore. We must plug the new voltage magnitudes and radian angles into the full trigonometric power equations. 
+
+For example, to find the new Calculated Real Power at Bus 2 ($P_2^{(1)}$), the computer evaluates:
+\begin{align*}
+    P_2^{(1)} = \;&|V_2||V_1||Y_{21}|\cos(\theta_{21} - \delta_2^{(1)} + \delta_1) \\
+    &+ |V_2|^2|Y_{22}|\cos\theta_{22} \\
+    &+ |V_2||V_3||Y_{23}|\cos(\theta_{23} - \delta_2^{(1)} + \delta_3^{(1)})
+\end{align*}
+Plugging in all the magnitudes and angles yields the new calculated powers, which we then subtract from the scheduled powers to find the Iteration 2 Mismatches:
+\begin{align*}
+    \Delta P_2^{(1)} &= P_2^{sch} - P_2^{(1)} = \mathbf{-0.099218 \text{ pu}} \\
+    \Delta P_3^{(1)} &= P_3^{sch} - P_3^{(1)} = \mathbf{0.021715 \text{ pu}} \\
+    \Delta Q_2^{(1)} &= Q_2^{sch} - Q_2^{(1)} = \mathbf{-0.050914 \text{ pu}}
+\end{align*}
+\end{stepbox}
+
+\begin{stepbox}[Step 3: Evaluate the New Jacobian Matrix (Step-by-Step)]
+Because the angles are no longer zero, we must use the full polar admittance values (angles in radians) and our updated Iteration 1 voltages:
+\begin{align*}
+    |V_1| &= 1.05, \quad \delta_1 = 0 \\
+    |V_2| &= 0.97345, \quad \delta_2 = -0.045263 \\
+    |V_3| &= 1.04, \quad \delta_3 = -0.007718
+\end{align*}
+
+\textbf{0. Convert $Y_{bus}$ to Polar Form (in Radians):}\\
+We must convert the required rectangular elements ($G + jB$) into magnitude $|Y| = \sqrt{G^2 + B^2}$ and angle $\theta = \tan^{-1}(B/G)$. \textit{(*Remember to add $\pi$ if the real part $G$ is negative!)}
+\begin{align*}
+    Y_{21} &= -10 + j20 \\
+    &\implies |Y_{21}| = \mathbf{22.36068}, \quad \theta_{21} = \tan^{-1}\left(\frac{20}{-10}\right) + \pi = \mathbf{2.0344 \text{ rad}} \\[0.2cm]
+    %
+    Y_{22} &= 26 - j52 \\
+    &\implies |Y_{22}| = \mathbf{58.13777}, \quad \theta_{22} = \tan^{-1}\left(\frac{-52}{26}\right) = \mathbf{-1.1071 \text{ rad}} \\[0.2cm]
+    %
+    Y_{23} &= -16 + j32 \\
+    &\implies |Y_{23}| = \mathbf{35.77709}, \quad \theta_{23} = \tan^{-1}\left(\frac{32}{-16}\right) + \pi = \mathbf{2.0344 \text{ rad}} \\[0.2cm]
+    %
+    Y_{31} &= -10 + j30 \\
+    &\implies |Y_{31}| = \mathbf{31.62278}, \quad \theta_{31} = \tan^{-1}\left(\frac{30}{-10}\right) + \pi = \mathbf{1.8925 \text{ rad}} \\[0.2cm]
+    %
+    Y_{32} &= -16 + j32 \\
+    &\implies |Y_{32}| = \mathbf{35.77709}, \quad \theta_{32} = \tan^{-1}\left(\frac{32}{-16}\right) + \pi = \mathbf{2.0344 \text{ rad}}
+\end{align*}
+\textbf{1. Pre-calculate the Angle Arguments:}\\
+To save space in our massive derivative equations, let's calculate the repeated angle combinations $(\theta_{ij} - \delta_i + \delta_j)$ first using the angles we just found:
+\begin{align*}
+    \alpha_{21} &= \theta_{21} - \delta_2 + \delta_1 = 2.0344 - (-0.045263) + 0 = \mathbf{2.079663 \text{ rad}} \\
+    \alpha_{23} &= \theta_{23} - \delta_2 + \delta_3 = 2.0344 - (-0.045263) + (-0.007718) = \mathbf{2.071945 \text{ rad}} \\
+    \alpha_{31} &= \theta_{31} - \delta_3 + \delta_1 = 1.8925 - (-0.007718) + 0 = \mathbf{1.900218 \text{ rad}} \\
+    \alpha_{32} &= \theta_{32} - \delta_3 + \delta_2 = 2.0344 - (-0.007718) + (-0.045263) = \mathbf{1.996855 \text{ rad}}
+\end{align*}
+
+\textbf{2. Calculate Row 1 ($J_{11}, J_{12}, J_{13}$):}
+\begin{align*}
+    J_{11} &= |V_2||V_1||Y_{21}|\sin(\alpha_{21}) + |V_2||V_3||Y_{23}|\sin(\alpha_{23}) \\
+    &= (0.97345)(1.05)(22.36068)\sin(2.079663) + (0.97345)(1.04)(35.77709)\sin(2.071945) \\
+    &= 19.9272 + 31.7974 = \mathbf{51.724675} \\[0.3cm]
+    %
+    J_{12} &= -|V_2||V_3||Y_{23}|\sin(\alpha_{23}) \\
+    &= -(0.97345)(1.04)(35.77709)\sin(2.071945) \\
+    &= \mathbf{-31.765618} \\[0.3cm]
+    %
+    J_{13} &= |V_1||Y_{21}|\cos(\alpha_{21}) + 2|V_2||Y_{22}|\cos(\theta_{22}) + |V_3||Y_{23}|\cos(\alpha_{23}) \\
+    &= (1.05)(22.36)\cos(2.0796) + 2(0.97345)(58.13)\cos(-1.1071) + (1.04)(35.77)\cos(2.0719) \\
+    &= -11.5165 + 50.6062 - 17.7871 = \mathbf{21.302567}
+\end{align*}
+
+\textbf{3. Calculate Row 2 ($J_{21}, J_{22}, J_{23}$):}
+\begin{align*}
+    J_{21} &= -|V_3||V_2||Y_{32}|\sin(\alpha_{32}) \\
+    &= -(1.04)(0.97345)(35.77709)\sin(1.996855) \\
+    &= \mathbf{-32.981642} \\[0.3cm]
+    %
+    J_{22} &= |V_3||V_1||Y_{31}|\sin(\alpha_{31}) + |V_3||V_2||Y_{32}|\sin(\alpha_{32}) \\
+    &= (1.04)(1.05)(31.62278)\sin(1.900218) + (1.04)(0.97345)(35.77709)\sin(1.996855) \\
+    &= 32.6747 + 32.9816 = \mathbf{65.656383} \\[0.3cm]
+    %
+    J_{23} &= |V_3||Y_{32}|\cos(\alpha_{32}) \\
+    &= (1.04)(35.77709)\cos(1.996855) \\
+    &= \mathbf{-15.379086}
+\end{align*}
+
+\textbf{4. Calculate Row 3 ($J_{31}, J_{32}, J_{33}$):}
+\begin{align*}
+    J_{31} &= |V_2||V_1||Y_{21}|\cos(\alpha_{21}) + |V_2||V_3||Y_{23}|\cos(\alpha_{23}) \\
+    &= (0.97345)(1.05)(22.36)\cos(2.0796) + (0.97345)(1.04)(35.77)\cos(2.0719) \\
+    &= -11.1895 - 17.3490 = \mathbf{-28.538577} \\[0.3cm]
+    %
+    J_{32} &= -|V_2||V_3||Y_{23}|\cos(\alpha_{23}) \\
+    &= -(0.97345)(1.04)(35.77709)\cos(2.071945) \\
+    &= \mathbf{17.402838} \\[0.3cm]
+    %
+    J_{33} &= -|V_1||Y_{21}|\sin(\alpha_{21}) - 2|V_2||Y_{22}|\sin(\theta_{22}) - |V_3||Y_{23}|\sin(\alpha_{23}) \\
+    &= -(1.05)(22.36)\sin(2.0796) - 2(0.97345)(58.13)\sin(-1.1071) - (1.04)(35.77)\sin(2.0719) \\
+    &= -20.4705 + 101.2173 - 32.6432 = \mathbf{48.103589}
+\end{align*}
+
+We have successfully rebuilt the Jacobian matrix for Iteration 2:
+\begin{equation*}
+    J^{(1)} = 
+    \begin{bmatrix} 
+    51.724675 & -31.765618 & 21.302567 \\ 
+    -32.981642 & 65.656383 & -15.379086 \\ 
+    -28.538577 & 17.402838 & 48.103589 
+    \end{bmatrix}
+\end{equation*}
+\end{stepbox}
+\begin{examtrap}[The Quadrant Trap: Converting $Y_{bus}$ to Polar]
+When converting the rectangular $Y_{bus}$ elements ($G + jB$) to polar angles ($\theta$), you must be careful with your calculator's $\tan^{-1}(B/G)$ function!
+
+For element $Y_{21} = -10 + j20$:
+\begin{itemize}
+    \item The Real part ($G$) is negative, and the Imaginary part ($B$) is positive. This vector lives in the \textbf{2nd Quadrant}.
+    \item A calculator will read $\tan^{-1}(20/-10)$ as $\tan^{-1}(-2)$ and give you $-63.43^\circ$ (4th Quadrant). This is mathematically incorrect for our vector!
+    \item \textbf{The Rule:} If the Real part ($G$) is negative, you MUST add $180^\circ$ (or $\pi$ radians) to the calculator's answer.
+\end{itemize}
+$$ \theta_{21} = -63.43^\circ + 180^\circ = 116.56^\circ $$
+$$ \theta_{21} \text{ (in radians)} = 116.56^\circ \times \left( \frac{\pi}{180} \right) = \mathbf{2.0344 \text{ rad}} $$
+Always double-check your signs before finalizing your polar $Y_{bus}$ matrix!
+\end{examtrap}
+
+\begin{stepbox}[Step 4: Matrix Inversion \& Voltage Update]
+We set up our Newton-Raphson system for Iteration 2:
+\begin{equation*}
+\begin{bmatrix} -0.099218 \\ 0.021715 \\ -0.050914 \end{bmatrix} 
+= 
+\begin{bmatrix} 
+51.724675 & -31.765618 & 21.302567 \\ 
+-32.981642 & 65.656383 & -15.379086 \\ 
+-28.538577 & 17.402838 & 48.103589 
+\end{bmatrix} 
+\begin{bmatrix} \Delta \delta_2^{(1)} \\ \Delta \delta_3^{(1)} \\ \Delta |V_2|^{(1)} \end{bmatrix}
+\end{equation*}
+
+Solving this linear system gives us the new corrections:
+\begin{align*}
+    \Delta \delta_2^{(1)} &= \mathbf{-0.001795 \text{ rad}} \\
+    \Delta \delta_3^{(1)} &= \mathbf{-0.000985 \text{ rad}} \\
+    \Delta |V_2|^{(1)} &= \mathbf{-0.001767 \text{ pu}}
+\end{align*}
+
+Finally, we apply these corrections to the voltages from the end of Iteration 1 to get our Iteration 2 voltages:
+\begin{align*}
+    \delta_2^{(2)} &= \delta_2^{(1)} + \Delta \delta_2^{(1)} = -0.045263 + (-0.001795) = \mathbf{-0.047058 \text{ rad}} \\
+    \delta_3^{(2)} &= \delta_3^{(1)} + \Delta \delta_3^{(1)} = -0.007718 + (-0.000985) = \mathbf{-0.008703 \text{ rad}} \\
+    |V_2|^{(2)} &= |V_2|^{(1)} + \Delta |V_2|^{(1)} = 0.973451 + (-0.001767) = \mathbf{0.971684 \text{ pu}}
+\end{align*}
+
+\textbf{Final Answer after 2 Iterations:}\\
+Bus 2 Voltage: $V_2^{(2)} = 0.971684 \angle -2.696^\circ \text{ pu}$ \\
+Bus 3 Voltage: $V_3^{(2)} = 1.04 \angle -0.499^\circ \text{ pu}$
+
+\vspace{0.3cm}
+\hrule
+\vspace{0.3cm}
+\textit{Note: The process repeats exactly like this for Iteration 3. In the textbook, by the end of Iteration 3, the mismatches shrink to less than $0.0002$, which means the solution has fully converged!}
+\end{stepbox}
+
+\end{document}
