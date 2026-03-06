@@ -1,82 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Ultimate Newton-Raphson Load Flow Guide</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            text-align: center;
-            padding: 50px 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #0066CC; /* Matches your LaTeX mainblue */
-        }
-        p {
-            font-size: 1.1em;
-            line-height: 1.6;
-            color: #555;
-            margin-bottom: 30px;
-        }
-        .btn {
-            display: inline-block;
-            margin: 10px;
-            padding: 15px 30px;
-            font-size: 1.1em;
-            font-weight: bold;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-        .btn-pdf {
-            background-color: #0066CC;
-        }
-        .btn-pdf:hover {
-            background-color: #004C99;
-        }
-        .btn-latex {
-            background-color: #00994C; /* Matches your LaTeX conceptgreen */
-        }
-        .btn-latex:hover {
-            background-color: #006633;
-        }
-        .footer {
-            margin-top: 40px;
-            font-size: 0.9em;
-            color: #888;
-        }
-    </style>
-</head>
-<body>
+<p align="center">
+  <img src="banner2.jpg" width="100%">
+</p>
 
-<div class="container">
-    <h1>The Ultimate Newton-Raphson Load Flow Guide</h1>
-    <p>By <strong>Mubarok Hossen Kamil</strong></p>
-    
-    <p>A complete, step-by-step pedagogical guide to solving Power System Load Flows. This guide bridges the gap left by most textbooks by providing full mathematical expansions for Iteration 1 <strong>and</strong> Iteration 2, dynamically building the Jacobian matrix, and highlighting common exam traps (like Radian vs. Degree calculator settings and Inverse Tangent Quadrant errors).</p>
-    
-    <!-- Here is the updated link pointing to your exact PDF name! -->
-    <a href="Newton_Raphson_Guide.pdf" class="btn btn-pdf" target="_blank">📄 Read / Download the PDF</a>
-    
-    <!-- Assumes your LaTeX file is named main.tex. Update if it's different! -->
-    <a href="main.tex" class="btn btn-latex" target="_blank">💻 View LaTeX Source Code</a>
+# Power Systems Analysis: Newton-Raphson Load Flow
 
-    <div class="footer">
-        Created for Electrical Engineering students everywhere.
-    </div>
-</div>
+![Status](https://img.shields.io/badge/Status-Complete-success)
+![Subject](https://img.shields.io/badge/Subject-Power_Systems-blue)
+![Level](https://img.shields.io/badge/Level-Undergraduate-orange)
 
-</body>
-</html>
+### 🌐 [Click Here to Read the Live Interactive Guide]https://mubarokkamil.github.io/Newton-Raphson_Load_Flow_Analysis/
+
+This repository provides a comprehensive, step-by-step mathematical guide to solving **Newton-Raphson Load Flow** problems. Designed for electrical engineering students, it bridges the gap between theoretical textbook formulas and practical, manual computation.
+
+### 📄 Access the Documentation
+* 👉 **[Download the Full PDF Guide](./Newton_Raphson_Guide.pdf)** *(Recommended)*
+* 💻 **[View LaTeX Source Code](./main.tex)** 
+
+---
+
+## 📖 Overview
+
+Unlike standard textbooks that often omit intermediate calculations, this document provides an explicit, line-by-line manual execution of a **3-Bus Power System** (containing Slack, PQ, and PV buses). 
+
+**Key Topics Covered:**
+* **Theoretical Formulation:** General power flow equations, power mismatches, and Jacobian matrix structure.
+* **Iteration 1 (Flat Start):** Mathematical simplification of trigonometric derivatives using conductance ($G$) and susceptance ($B$) components.
+* **Iteration 2 (Full Execution):** Handling non-zero angles, recalculating partial derivatives, and updating state variables.
+* **The Quadrant Trap:** A critical methodology for avoiding common calculator errors during rectangular-to-polar $Y_{bus}$ conversions.
+
+---
+
+## 🧮 Mathematical Formulation
+
+The core of this guide explicitly maps Power Mismatches ($\Delta P, \Delta Q$) to Voltage Corrections ($\Delta \delta, \Delta |V|$) via the Jacobian Matrix. For our specific 3-bus system, this is formulated as:
+
+$$
+\begin{bmatrix} \Delta P_2 \\ \Delta P_3 \\ \Delta Q_2 \end{bmatrix} = 
+\begin{bmatrix} 
+\frac{\partial P_2}{\partial \delta_2} & \frac{\partial P_2}{\partial \delta_3} & \frac{\partial P_2}{\partial |V_2|} \\[0.3cm]
+\frac{\partial P_3}{\partial \delta_2} & \frac{\partial P_3}{\partial \delta_3} & \frac{\partial P_3}{\partial |V_2|} \\[0.3cm]
+\frac{\partial Q_2}{\partial \delta_2} & \frac{\partial Q_2}{\partial \delta_3} & \frac{\partial Q_2}{\partial |V_2|} 
+\end{bmatrix}
+\begin{bmatrix} \Delta \delta_2 \\ \Delta \delta_3 \\ \Delta |V_2| \end{bmatrix}
+$$
+
+*(Please refer to the PDF for the full numerical evaluation, partial derivative expansions, and matrix inversion).*
+
+---
+*Authored by **Mubarok Hossen Kamil**.*
