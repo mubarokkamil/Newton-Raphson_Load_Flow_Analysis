@@ -46,5 +46,14 @@ $$
 
 *(Please refer to the PDF for the full numerical evaluation, partial derivative expansions, and matrix inversion).*
 
+### 📝 How to Cite this Guide
+If you found this guide or the Python code helpful for your university studies, assignments, or research, please feel free to cite it:
+
+**APA Format:**
+> Hossen Kamil, M. (2026). *Power Systems: The Ultimate Newton-Raphson Load Flow Guide*. Academia.edu. 
+https://www.academia.edu/164978887/Power_Systems_The_Ultimate_Newton_Raphson_Load_Flow_Guide?source=swp_share
 ---
-*Authored by **Mubarok Hossen Kamil**.*
+### Author
+**Mubarok Hossen Kamil**  
+Department of Electrical and Electronic Engineering  
+Shahjalal University of Science and Technology (SUST)
